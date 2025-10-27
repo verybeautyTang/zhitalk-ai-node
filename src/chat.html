@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单聊天页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .chat-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+        .chat-history {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid #eee;
+        }
+        .chat-message {
+            margin-bottom: 16px;
+        }
+        .chat-message.user {
+            text-align: right;
+            color: #1976d2;
+        }
+        .chat-message.bot {
+            text-align: left;
+            color: #333;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 16px;
+            background: #fafafa;
+            border-radius: 0 0 8px 8px;
+        }
+        textarea {
+            flex: 1;
+            resize: none;
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            margin-left: 12px;
+            padding: 0 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            background: #1976d2;
+            color: #fff;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-history" id="chatHistory"></div>
+        <div class="chat-input-area">
+            <textarea id="chatInput" rows="2" placeholder="请输入内容..."></textarea>
+            <button id="sendBtn">发送</button>
+        </div>
+    </div>
+    <script>
+        // 聊天记录数组
+        const chatHistory = [];
+        const chatHistoryDiv = document.getElementById('chatHistory');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // 渲染聊天记录
+        function renderChat() {
+            chatHistoryDiv.innerHTML = '';
+            chatHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'chat-message ' + item.role;
+                div.textContent = item.content;
+                chatHistoryDiv.appendChild(div);
+            });
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+        }
+
+        // 发送消息
+        sendBtn.onclick = async function() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+            chatHistory.push({ role: 'user', content: message });
+            renderChat();
+            chatInput.value = '';
+            sendBtn.disabled = true;
+
+            // 显示机器人回复占位
+            const botMsg = { role: 'bot', content: '' };
+            chatHistory.push(botMsg);
+            renderChat();
+
+            // 发送 POST 请求
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                if (!response.ok) {
+                    botMsg.content = '服务器错误，请稍后重试。';
+                    renderChat();
+                    sendBtn.disabled = false;
+                    return;
+                }
+
+                // 处理 SSE 流式数据
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let done = false;
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    if (value) {
+                        // 解析 SSE 格式：以 "data: " 开头
+                        const chunk = decoder.decode(value);
+                        chunk.split('\n').forEach(line => {
+                            if (line.startsWith('data: ')) {
+                                botMsg.content += line.slice(6);
+                                renderChat();
+                            }
+                        });
+                    }
+                    done = readerDone;
+                }
+            } catch (err) {
+                botMsg.content = '网络错误，请检查连接。';
+                renderChat();
+            }
+            sendBtn.disabled = false;
+        };
+
+        // 按下 Enter 发送消息（支持 Shift+Enter 换行）
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
