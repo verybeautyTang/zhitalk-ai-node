@@ -17,6 +17,9 @@ importers:
       '@langchain/langgraph':
         specifier: ^1.0.1
         version: 1.0.1(@langchain/core@1.0.1(openai@6.6.0(zod@4.1.12)))(zod@4.1.12)
+      '@langchain/tavily':
+        specifier: ^1.0.0
+        version: 1.0.0(@langchain/core@1.0.1(openai@6.6.0(zod@4.1.12)))
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
@@ -29,6 +32,9 @@ importers:
       uuid:
         specifier: ^13.0.0
         version: 13.0.0
+      zod:
+        specifier: ^4.1.12
+        version: 4.1.12
 
 packages:
 
@@ -78,6 +84,12 @@ packages:
 
   '@langchain/openai@1.0.0':
     resolution: {integrity: sha512-olKEUIjb3HBOiD/NR056iGJz4wiN6HhQ/u65YmGWYadWWoKOcGwheBw/FE0x6SH4zDlI3QmP+vMhuQoaww19BQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@langchain/core': ^1.0.0
+
+  '@langchain/tavily@1.0.0':
+    resolution: {integrity: sha512-kE3E1bTYtp4km7YLQM/lKOZW2yANFNsg4Fk33j11uAGcUGKN2skKzpEe4qgF34wRxMi4G4r7Qmpji2j+v24IaA==}
     engines: {node: '>=20'}
     peerDependencies:
       '@langchain/core': ^1.0.0
@@ -283,6 +295,11 @@ snapshots:
       zod: 4.1.12
     transitivePeerDependencies:
       - ws
+
+  '@langchain/tavily@1.0.0(@langchain/core@1.0.1(openai@6.6.0(zod@4.1.12)))':
+    dependencies:
+      '@langchain/core': 1.0.1(openai@6.6.0(zod@4.1.12))
+      zod: 4.1.12
 
   '@types/retry@0.12.0': {}
 
