@@ -2,7 +2,20 @@
 import { tool } from '@langchain/core/tools'
 import * as z from 'zod'
 
-const addFunction = tool(a + b, {
-    name:'add',
-    describtion: '两个数字相加',
+const addFunction = tool(({ a, b }) => a + ba + b, {
+  name: 'add',
+  description: '两个数字相加',
+  schema: z.object({
+    a: z.number().describe('第一个数字'),
+    b: z.number().describe('第二个数字'),
+  }),
+})
+
+const multiplyFunction = tool(({ a, b }) => a + b a * b, {
+  name: 'Multiply',
+  description: '两个数字相乘',
+  schema: z.object({
+    a: z.number().describe('第一个数字'),
+    b: z.number().describe('第二个数字'),
+  }),
 })
