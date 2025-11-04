@@ -120,29 +120,15 @@ const agent = entrypoint({ name: 'agent', checkpointer }, async (messages) => {
 
     llmCalls: totalLlmCalls,
   }
-})
+}) // 修改调用方式
 const result1 = await agent.invoke([new HumanMessage('3 + 4等于多少')], config)
 
-const result2 = await agent.invoke(
-  {
-    messages: [new HumanMessage('1 + 2 等于多少')],
-  },
-  config
-)
+const result2 = await agent.invoke([new HumanMessage('1 + 2 等于多少')], config)
 
-const result3 = await agent.invoke(
-  {
-    messages: [new HumanMessage('这两轮结果相减是多少')],
-  },
-  config
-)
+const result3 = await agent.invoke([new HumanMessage('这两轮结果相减是多少')], config)
 
-const result4 = await agent.invoke(
-  {
-    messages: [new HumanMessage('我刚刚问了一些什么问题？')],
-  },
-  config
-)
+const result4 = await agent.invoke([new HumanMessage('我刚刚问了一些什么问题？')], config)
+
 for (const message of result4.messages) {
   console.log(`[${message.getType()}]: ${message.text}`)
 }
