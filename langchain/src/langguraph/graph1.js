@@ -39,7 +39,7 @@ const divideFunction = tool(({ a, b }) => a / b, {
 // 定义 deepseek llm 绑定三个 tool ，再调用 llm 时即可自动调用这些 tool
 
 const llm = new ChatDeepSeek({
-  model: 'deepseek',
+  model: 'deepseek-chat',
 })
 
 const toolsByName = {
@@ -157,6 +157,6 @@ const result4 = await agent.invoke(
   },
   config
 )
-for (const message of result.messages) {
+for (const message of result4.messages) {
   console.log(`[${message.getType()}]: ${message.text}`)
 }
