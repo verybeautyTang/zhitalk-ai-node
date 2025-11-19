@@ -123,7 +123,7 @@ async function ragDemo() {
 
     // 4. 存储到 ChromaDB
     console.log('💾 步骤 4: 存储到 ChromaDB...')
-    const collectionName = 'nike_10k_2023'
+    const collectionName = 'nike_inc_2025'
 
     // 首先清理已存在的集合
     try {
@@ -149,7 +149,7 @@ async function ragDemo() {
 
     // 检索示例 1: 关于 Nike 的收入
     console.log('\n【检索示例 1】')
-    const query1 = "What was Nike's revenue in 2023?"
+    const query1 = "What was Nike's revenue in 2025?"
     console.log(`查询问题: ${query1}`)
     console.log('-'.repeat(80))
 
