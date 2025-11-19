@@ -1,140 +1,190 @@
-import fs from 'fs'
-import { PDFParse } from 'pdf-parse'
-import { ChromaClient } from 'chromadb'
-import 'dotenv/config'
+import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters'
 import { AlibabaTongyiEmbeddings } from '@langchain/community/embeddings/alibaba_tongyi'
+import { Chroma } from '@langchain/community/vectorstores/chroma'
+import { ChromaClient } from 'chromadb'
+import { Document } from '@langchain/core/documents'
+import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import PDFParser from 'pdf2json'
+import fs from 'fs'
 
-// 初始化嵌入模型
-const embeddings = new AlibabaTongyiEmbeddings({})
+// 加载环境变量
+dotenv.config()
 
-// 1. 加载 PDF 文件内容
-const pdfPath = '../files/nike-inc-2025.pdf'
-const pdfData = fs.readFileSync(pdfPath)
+// 获取当前文件目录
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-// 2. 拆分 chunk
-const splitIntoChunks = (text, chunkSize, overlap) => {
-  const chunks = []
-  for (let i = 0; i < text.length; i += chunkSize - overlap) {
-    chunks.push(text.slice(i, i + chunkSize))
-  }
-  return chunks
+/**
+ * 清理 PDF 解析后的文本格式
+ */
+function cleanText(text) {
+  // 移除单字符之间的空格（针对 PDF 特殊编码）
+  let cleaned = text.replace(/(\w)\s+(?=\w)/g, '$1')
+  // 移除多余的空格
+  cleaned = cleaned.replace(/\s+/g, ' ').trim()
+  return cleaned
 }
 
-// 3. 使用真实的嵌入模型转换文本
-const convertToEmbedding = async (text) => {
-  try {
-    const embedding = await embeddings.embedQuery(text)
-    return embedding
-  } catch (error) {
-    console.error('生成嵌入向量时出错:', error)
-    // 备用方案：简单的字符编码
-    return text.split('').map((char) => char.charCodeAt(0) / 1000)
-  }
+/**
+ * 使用 pdf2json 加载 PDF 文件
+ */
+async function loadPDF(pdfPath) {
+  return new Promise((resolve, reject) => {
+    const pdfParser = new PDFParser()
+
+    pdfParser.on('pdfParser_dataError', (errData) => {
+      reject(errData.parserError)
+    })
+
+    pdfParser.on('pdfParser_dataReady', (pdfData) => {
+      try {
+        const pages = pdfData.Pages || []
+        const documents = []
+
+        pages.forEach((page, pageIndex) => {
+          let pageText = ''
+          const texts = page.Texts || []
+
+          texts.forEach((text) => {
+            try {
+              const decodedText = decodeURIComponent(text.R[0].T)
+              pageText += decodedText + ' '
+            } catch (e) {
+              // 如果解码失败，使用原始文本
+              pageText += text.R[0].T + ' '
+            }
+          })
+
+          if (pageText.trim()) {
+            documents.push(
+              new Document({
+                pageContent: cleanText(pageText),
+                metadata: {
+                  source: pdfPath,
+                  pageNumber: pageIndex + 1,
+                },
+              })
+            )
+          }
+        })
+
+        resolve(documents)
+      } catch (error) {
+        reject(error)
+      }
+    })
+
+    pdfParser.loadPDF(pdfPath)
+  })
 }
 
-// 4. 批量生成嵌入向量
-const generateEmbeddingsBatch = async (chunks) => {
+/**
+ * RAG 检索功能演示
+ * 1. 加载 PDF 文件
+ * 2. 拆分文档为 chunks
+ * 3. 转换为 embedding 向量
+ * 4. 存储到 ChromaDB
+ * 5. 执行检索并展示结果
+ */
+async function ragDemo() {
   try {
-    // 使用 embedDocuments 批量处理
-    const embeddingsList = await embeddings.embedDocuments(chunks)
-    return embeddingsList
-  } catch (error) {
-    console.error('批量生成嵌入向量时出错，使用备用方案:', error)
-    // 备用方案：逐个生成
-    const result = []
-    for (const chunk of chunks) {
-      const embedding = await convertToEmbedding(chunk)
-      result.push(embedding)
-    }
-    return result
-  }
-}
+    console.log('=== RAG 检索功能演示 ===\n')
 
-// 5. 存储到 chroma 数据库
-const storeInChroma = async (chunks, embeddingsList) => {
-  const client = new ChromaClient()
+    // 1. 加载 PDF 文件
+    console.log('📄 步骤 1: 加载 PDF 文件...')
+    const pdfPath = path.join(__dirname, '../files/nike-inc-2025.pdf')
+    const docs = await loadPDF(pdfPath)
+    console.log(`✅ 成功加载 PDF，共 ${docs.length} 页\n`)
 
-  try {
-    // 获取或创建集合
-    const collection = await client.getOrCreateCollection({
-      name: 'pdf_documents',
+    // 2. 拆分文档为 chunks
+    console.log('✂️  步骤 2: 拆分文档为 chunks...')
+    const textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+      chunkOverlap: 200,
     })
+    const splitDocs = await textSplitter.splitDocuments(docs)
+    console.log(`✅ 成功拆分为 ${splitDocs.length} 个 chunks`)
 
-    // 准备数据
-    const ids = chunks.map((_, index) => `chunk_${index}`)
-    const documents = chunks
+    // 为了演示，只使用前 100 个 chunks 以避免配额限制
+    const limitedDocs = splitDocs.slice(0, 100)
+    console.log(
+      `📝 为避免配额限制，本次演示使用前 ${limitedDocs.length} 个 chunks\n`
+    )
 
-    await collection.add({
-      ids: ids,
-      documents: documents,
-      embeddings: embeddingsList,
+    // 3. 初始化 Embedding 模型
+    console.log('🔢 步骤 3: 初始化 Embedding 模型...')
+    const embeddings = new AlibabaTongyiEmbeddings({
+      apiKey: process.env.ALIBABA_API_KEY,
+      batchSize: 10, // 降低批处理大小以避免配额限制
     })
+    console.log('✅ Embedding 模型初始化成功\n')
 
-    console.log(`成功存储 ${chunks.length} 个文档块到 ChromaDB`)
-  } catch (error) {
-    console.error('存储到 ChromaDB 时出错:', error)
-  }
-}
+    // 4. 存储到 ChromaDB
+    console.log('💾 步骤 4: 存储到 ChromaDB...')
+    const collectionName = 'nike_10k_2023'
 
-// 6. 执行检索并打印结果
-const searchInChroma = async (query) => {
-  const client = new ChromaClient()
-
-  try {
-    const collection = await client.getCollection({
-      name: 'pdf_documents',
-    })
-
-    // 为查询文本生成嵌入向量
-    const queryEmbedding = await convertToEmbedding(query)
-
-    const results = await collection.query({
-      queryEmbeddings: [queryEmbedding],
-      nResults: 3,
-    })
-
-    console.log(`\n=== 查询: "${query}" ===`)
-    if (results.documents && results.documents[0]) {
-      results.documents[0].forEach((doc, index) => {
-        console.log(`\n结果 ${index + 1}:`)
-        console.log(`距离: ${results.distances[0][index]}`)
-        console.log(`内容: ${doc.substring(0, 200)}...`)
+    // 首先清理已存在的集合
+    try {
+      const chromaClient = new ChromaClient({
+        path: 'http://localhost:8000',
       })
-    } else {
-      console.log('未找到相关结果')
+      await chromaClient.deleteCollection({ name: collectionName })
+      console.log('🗑️  已删除旧的集合')
+    } catch (error) {
+      // 集合不存在，忽略错误
     }
+
+    // 创建向量存储
+    const vectorStore = await Chroma.fromDocuments(limitedDocs, embeddings, {
+      collectionName: collectionName,
+      url: 'http://localhost:8000',
+    })
+    console.log(`✅ 成功存储 ${limitedDocs.length} 个 chunks 到 ChromaDB\n`)
+
+    // 5. 执行检索演示
+    console.log('🔍 步骤 5: 执行检索演示...\n')
+    console.log('='.repeat(80))
+
+    // 检索示例 1: 关于 Nike 的收入
+    console.log('\n【检索示例 1】')
+    const query1 = "What was Nike's revenue in 2023?"
+    console.log(`查询问题: ${query1}`)
+    console.log('-'.repeat(80))
+
+    const results1 = await vectorStore.similaritySearchWithScore(query1, 3)
+    console.log(`找到 ${results1.length} 个相关文档片段:\n`)
+
+    results1.forEach(([doc, score], index) => {
+      console.log(`结果 ${index + 1}: (相似度: ${(score * 100).toFixed(2)}%)`)
+      console.log(`内容: ${doc.pageContent.substring(0, 400)}...`)
+      console.log(`来源: 第 ${doc.metadata.pageNumber || '未知'} 页`)
+      console.log('-'.repeat(80))
+    })
+
+    // 检索示例 2: 关于 Nike 的产品
+    console.log('\n【检索示例 2】')
+    const query2 = "What are Nike's main product categories?"
+    console.log(`查询问题: ${query2}`)
+    console.log('-'.repeat(80))
+
+    const results2 = await vectorStore.similaritySearchWithScore(query2, 3)
+    console.log(`找到 ${results2.length} 个相关文档片段:\n`)
+
+    results2.forEach(([doc, score], index) => {
+      console.log(`结果 ${index + 1}: (相似度: ${(score * 100).toFixed(2)}%)`)
+      console.log(`内容: ${doc.pageContent.substring(0, 400)}...`)
+      console.log(`来源: 第 ${doc.metadata.pageNumber || '未知'} 页`)
+      console.log('-'.repeat(80))
+    })
+
+    console.log('\n✨ RAG 检索演示完成！')
   } catch (error) {
-    console.error('检索时出错:', error)
+    console.error('❌ 错误:', error.message)
+    console.error(error)
   }
 }
 
-// 主逻辑
-const main = async () => {
-  try {
-    const parser = new PDFParse({ data: pdfData })
-    console.log('parser', parser)
-    const text = await parser.options.data
-    console.log('text', text)
-    console.log(`PDF 文本长度: ${text.length} 字符`)
-
-    const chunks = splitIntoChunks(text, 1000, 200)
-    console.log(`拆分成 ${chunks.length} 个文档块`)
-
-    // 批量生成嵌入向量
-    console.log('正在生成嵌入向量...')
-    const embeddingsList = await generateEmbeddingsBatch(chunks)
-    console.log('嵌入向量生成完成')
-
-    await storeInChroma(chunks, embeddingsList)
-
-    // 执行检索
-    await searchInChroma('Nike 2025')
-    await searchInChroma('sustainability')
-    await searchInChroma('financial report')
-  } catch (error) {
-    console.error('处理PDF时出错:', error)
-  }
-}
-
-// 运行主函数
-main().catch(console.error)
+// 运行演示
+ragDemo()
