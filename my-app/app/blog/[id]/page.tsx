@@ -1,15 +1,16 @@
 type BlogDetailProps = {
-    params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>
 }
 
+import ThumbUpButton from './thumb-up'
 export default async function BlogDetail({ params }: BlogDetailProps) {
-    const { id } = await params;
+  const { id } = await params
 
-
-    return (
-        <div>
-            <h1>Blog Post #{id}</h1>
-            <p>This is a mock blog detail page for post ID {id}</p>
-        </div>
-    );
-}   
+  return (
+    <div>
+      <h1>Blog Post #{id}</h1>
+      <p>This is a mock blog detail page for post ID {id}</p>
+      <ThumbUpButton id={id} />
+    </div>
+  )
+}
