@@ -6,10 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:push:direct": "tsx scripts/push-schema.ts",
+    "db:create-tables": "tsx scripts/create-tables.ts"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.7",
     "drizzle-orm": "^0.44.7",
     "next": "16.0.3",
     "pg": "^8.16.3",
