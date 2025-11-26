@@ -6,6 +6,8 @@ if (!process.env.DB_URL) {
   throw new Error('DB_URL environment variable is not set');
 }
 
+console.log('DB_URL:', process.env.DB_URL);
+
 // 创建 postgres 客户端
 const client = postgres(process.env.DB_URL);
 
