@@ -1,3 +1,4 @@
+drizzle-kit generate:pg
 import { defineConfig } from 'drizzle-kit';
 import * as dotenv from 'dotenv';
 

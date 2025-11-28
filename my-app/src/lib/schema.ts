@@ -1,4 +1,4 @@
-import { pgTable, text, integer, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, timestamp } from 'drizzle-orm/pg-core'
 
 // users 用户表
 export const users = pgTable('users', {
@@ -9,7 +9,7 @@ export const users = pgTable('users', {
   intro: text('intro'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+})
 
 // blog 博客列表
 export const blog = pgTable('blog', {
@@ -17,7 +17,9 @@ export const blog = pgTable('blog', {
   title: text('title').notNull(),
   content: text('content').notNull(),
   thumbup: integer('thumbup').notNull().default(0),
-  userId: text('user_id').notNull().references(() => users.id),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
+})
