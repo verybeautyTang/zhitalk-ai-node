@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "langgraphjs dev",
+    "start": "langgraphjs start",
     "watch": "tsc --watch",
     "clean": "rm -rf dist",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -15,9 +15,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^17.2.3"
+    "@langchain/core": "^1.0.4",
+    "@langchain/deepseek": "^1.0.0",
+    "@langchain/langgraph": "^1.0.2",
+    "@langchain/openai": "^1.1.0",
+    "dotenv": "^17.2.3",
+    "langchain": "^1.0.4"
   },
   "devDependencies": {
+    "@langchain/langgraph-cli": "^1.0.3",
     "@types/node": "^24.10.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
