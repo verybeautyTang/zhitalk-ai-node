@@ -1,12 +1,11 @@
-drizzle-kit generate:pg
-import { defineConfig } from 'drizzle-kit';
-import * as dotenv from 'dotenv';
+import { defineConfig } from 'drizzle-kit'
+import * as dotenv from 'dotenv'
 
 // 加载 .env 文件
-dotenv.config();
+dotenv.config()
 
 if (!process.env.DB_URL) {
-  throw new Error('DB_URL environment variable is not set');
+  throw new Error('DB_URL environment variable is not set')
 }
 
 export default defineConfig({
@@ -16,4 +15,4 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DB_URL,
   },
-});
+})
