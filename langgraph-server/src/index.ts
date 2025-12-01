@@ -1,18 +1,30 @@
-import dotenv from 'dotenv'
+import { initConfig } from './config'
+import { log } from './tools'
+import { ToolNode } from './toolNode'
+import { buildPrompt } from './prompt'
+import { callModel } from './callModel'
 
-// Load environment variables
-dotenv.config()
+// Workflow definition only: compose modules without side-effects
+export async function runWorkflow(input: string) {
+  // initialize config/log once if desired
+  initConfig()
 
-const PORT = process.env.PORT || 3000
-const NODE_ENV = process.env.NODE_ENV || 'development'
+  log('info', 'Workflow starting')
 
-console.log('🚀 LangGraph Server starting...')
-console.log(`Environment: ${NODE_ENV}`)
-console.log(`Port: ${PORT}`)
+  const prepareNode = new ToolNode('preparePrompt', async (i) => {
+    const p = buildPrompt(String(i))
+    return { success: true, output: p }
+  })
 
-// Your application code here
-function main() {
-  console.log('✅ Server initialized successfully!')
+  const prepared = await prepareNode.run(input)
+  if (!prepared.success) {
+    log('error', `Preparation failed: ${prepared.error}`)
+    return { success: false, error: prepared.error }
+  }
+
+  const prompt = String(prepared.output)
+  const result = await callModel(prompt)
+
+  log('info', 'Workflow finished')
+  return { success: true, prompt, result }
 }
-
-main()
