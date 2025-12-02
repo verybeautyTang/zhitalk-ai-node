@@ -18,10 +18,12 @@
     "@langchain/core": "^1.0.4",
     "@langchain/deepseek": "^1.0.0",
     "@langchain/langgraph": "^1.0.2",
+    "@langchain/langgraph-checkpoint-postgres": "^1.0.0",
     "@langchain/openai": "^1.1.0",
     "@langchain/tavily": "^1.0.1",
     "dotenv": "^17.2.3",
-    "langchain": "^1.0.4"
+    "langchain": "^1.0.4",
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "@langchain/langgraph-cli": "^1.0.3",

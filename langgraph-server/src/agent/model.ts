@@ -7,3 +7,9 @@ export const model = new ChatDeepSeek({
   model: 'deepseek-chat',
   temperature: 0,
 }).bindTools(tools)
+
+// 创建深度思考模型实例并绑定 tools
+export const reasoningModel = new ChatDeepSeek({
+  model: 'deepseek-reasoner',
+  temperature: 0,
+}).bindTools(tools)
