@@ -62,7 +62,7 @@ const config = {
 
 const agent = createAgent({
     model: llm,
-    tools: [getWeather,getUserLocation],
+    tools: [ getWeather,getUserLocation ],
     prompt: systemPrompt,
     responseFormat,
     checkpointer,
